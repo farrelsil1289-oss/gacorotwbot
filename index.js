@@ -75,13 +75,11 @@ const chunk = (arr, parts) => {
 };
 
 const buildVcard = (nums, label) =>
-  nums.map(
-`BEGIN:VCARD
+  nums.map((n, i) => `BEGIN:VCARD
 VERSION:3.0
-FN:${label}
-TEL;TYPE=CELL:${nums.shift()}
-END:VCARD`
-).join("\n");
+FN:${label}-${i + 1}
+TEL;TYPE=CELL:${n}
+END:VCARD`).join("\n");
 
 /* =======================
    COMMAND MAP
@@ -210,5 +208,6 @@ bot.on("message", msg => {
 });
 
 console.log("🤖 BOT FINAL FIX — FILE PASTI TERKIRIM");
+
 
 
