@@ -219,18 +219,26 @@ bot.on("message", msg => {
   const m = msg.text.match(/^#(vcardfresh|vcardfu)\s+(\d+)/i);
   if (!m) return;
 
-  queue.push({
-    chatId,
-    userId,
-    type: m[1].toLowerCase(),
-    take: parseInt(m[2], 10),
-  });
+queue.push({
+  chatId,
+  userId,
+  type: m[1].toLowerCase(),
+  take: parseInt(m[2], 10),
+});
 
-  bot.sendMessage(chatId, "⚠️ Done cek");
-  processQueue();
+// posisi antrian = queue.length (yang baru masuk dihitung)
+const pos = queue.length;
+
+bot.sendMessage(
+  chatId,
+  `📥 Request masuk.\n⏳ Posisi antrian: ${busy ? pos : 1}`
+);
+
+processQueue();
 });
 
 console.log("🤖 BOT FINAL FIX — FILE PASTI TERKIRIM");
+
 
 
 
