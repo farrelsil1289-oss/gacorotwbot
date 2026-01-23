@@ -48,15 +48,18 @@ http.createServer((req, res) => {
   if (req.method === "POST" && parsed.pathname === WEBHOOK_PATH) {
     let body = "";
     req.on("data", c => (body += c));
-    req.on("end", async () => {
-      try {
-        await bot.processUpdate(JSON.parse(body));
-        res.end("OK");
-      } catch (e) {
-        console.error(e);
-        res.end("ERROR");
-      }
-    });
+   req.on("end", () => {
+  // Balas cepat ke Telegram biar gak retry/delay
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("OK");
+
+  // Proses update setelah response dikirim
+  try {
+    bot.processUpdate(JSON.parse(body));
+  } catch (e) {
+    console.error("processUpdate error:", e);
+  }
+});
   } else {
     res.end("Bot running");
   }
@@ -228,6 +231,7 @@ bot.on("message", msg => {
 });
 
 console.log("🤖 BOT FINAL FIX — FILE PASTI TERKIRIM");
+
 
 
 
