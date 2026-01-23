@@ -104,29 +104,29 @@ async function processQueue() {
 
   try {
     await bot.sendMessage(chatId, "⏳ mana lagi?");
-
-    // WAJIB TEST DM
     await bot.sendMessage(userId, "📦 Paket jadi nihh...");
 
+    // AMBIL DATA SHEET
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: `${SHEET_NAME}!${col}:${col}`,
     });
 
+    // NORMALISASI + FILTER
     const rawNumbers = (res.data.values || [])
-     .map(v => String(v?.[0] ?? "").replace(/[^0-9]/g, ""))
+      .map(v => String(v?.[0] ?? "").replace(/[^0-9]/g, ""))
       .filter(v => v.startsWith("62"))
       .filter(v => v.length >= 10);
 
-     // DEDUPE (pertahankan urutan)
-const seen = new Set();
-const numbers = [];
-for (const n of rawNumbers) {
-  if (!seen.has(n)) {
-    seen.add(n);
-    numbers.push(n);
-  }
-}
+    // DEDUPE (ANTI NOMOR KEMBAR)
+    const seen = new Set();
+    const numbers = [];
+    for (const n of rawNumbers) {
+      if (!seen.has(n)) {
+        seen.add(n);
+        numbers.push(n);
+      }
+    }
 
     if (numbers.length < take) {
       await bot.sendMessage(chatId, "❌ Stok db habis chat spv atau assist");
@@ -136,54 +136,58 @@ for (const n of rawNumbers) {
 
     const selected = numbers.slice(0, take);
     const remain = numbers.slice(take);
-    const files = chunk(selected, 5);
+    const files = chunk(selected, 5); // SELALU 5 VCARD
+
+    // KIRIM VCARD (AMAN TANPA BACKTICK MULTILINE)
+    let globalIndex = 0;
 
     for (let i = 0; i < files.length; i++) {
-let globalIndex = 0;
+      const vcardText = files[i]
+        .map(n => {
+          globalIndex++;
+          return [
+            "BEGIN:VCARD",
+            "VERSION:3.0",
+            `FN:${label}-${globalIndex}`,
+            `TEL;TYPE=CELL:${n}`,
+            "END:VCARD",
+          ].join("\n");
+        })
+        .join("\n");
 
-for (let i = 0; i < files.length; i++) {
-  const vcardText = files[i].map((n) => {
-    globalIndex++;
-    return `BEGIN:VCARD
-VERSION:3.0
-FN:${label}-${globalIndex}
-TEL;TYPE=CELL:${n}
-END:VCARD`;
-  }).join("\n");
+      const buffer = Buffer.from(vcardText, "utf8");
 
-  const buffer = Buffer.from(vcardText, "utf8");
+      await bot.sendDocument(
+        userId,
+        buffer,
+        {},
+        {
+          filename: `${label}_${i + 1}.vcf`,
+          contentType: "text/vcard",
+        }
+      );
 
-  await bot.sendDocument(
-    userId,
-    buffer,
-    {},
-    {
-      filename: `${label}_${i + 1}.vcf`,
-      contentType: "text/vcard",
+      await sleep(1200);
     }
-  );
 
-  await sleep(1200);
-}
+    // UPDATE SHEET (CLEAR SESUAI DATA KEBACA, BUKAN take)
+    const lastRow = (res.data.values || []).length;
 
-    // UPDATE SHEET
-const lastRow = (res.data.values || []).length;
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!${col}1:${col}${lastRow}`,
+    });
 
-await sheets.spreadsheets.values.clear({
-  spreadsheetId: SHEET_ID,
-  range: `${SHEET_NAME}!${col}1:${col}${lastRow}`,
-});
-
-if (remain.length) {
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SHEET_ID,
-    range: `${SHEET_NAME}!${col}1`,
-    valueInputOption: "RAW",
-    requestBody: {
-      values: remain.map(v => [v]),
-    },
-  });
-}
+    if (remain.length) {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SHEET_ID,
+        range: `${SHEET_NAME}!${col}1`,
+        valueInputOption: "RAW",
+        requestBody: {
+          values: remain.map(v => [v]),
+        },
+      });
+    }
 
     await bot.sendMessage(userId, "✅ VCARD dikirim semua");
 
@@ -195,7 +199,6 @@ if (remain.length) {
   busy = false;
   processQueue();
 }
-
 /* =======================
    MESSAGE HANDLER
 ======================= */
@@ -225,6 +228,7 @@ bot.on("message", msg => {
 });
 
 console.log("🤖 BOT FINAL FIX — FILE PASTI TERKIRIM");
+
 
 
 
