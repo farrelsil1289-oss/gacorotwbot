@@ -113,9 +113,20 @@ async function processQueue() {
       range: `${SHEET_NAME}!${col}:${col}`,
     });
 
-    const numbers = (res.data.values || [])
-      .map(v => String(v[0]).replace(/\D/g, ""))
+    const rawNumbers = (res.data.values || [])
+     .map(v => String(v?.[0] ?? "").replace(/[^0-9]/g, ""))
+      .filter(v => v.startsWith("62"))
       .filter(v => v.length >= 10);
+
+     // DEDUPE (pertahankan urutan)
+const seen = new Set();
+const numbers = [];
+for (const n of rawNumbers) {
+  if (!seen.has(n)) {
+    seen.add(n);
+    numbers.push(n);
+  }
+}
 
     if (numbers.length < take) {
       await bot.sendMessage(chatId, "❌ Stok db habis chat spv atau assist");
@@ -128,45 +139,51 @@ async function processQueue() {
     const files = chunk(selected, 5);
 
     for (let i = 0; i < files.length; i++) {
-      const vcardText = files[i].map(
-        (n, x) => `BEGIN:VCARD
+let globalIndex = 0;
+
+for (let i = 0; i < files.length; i++) {
+  const vcardText = files[i].map((n) => {
+    globalIndex++;
+    return `BEGIN:VCARD
 VERSION:3.0
-FN:${label}-${x + 1}
+FN:${label}-${globalIndex}
 TEL;TYPE=CELL:${n}
-END:VCARD`
-      ).join("\n");
+END:VCARD`;
+  }).join("\n");
 
-      const buffer = Buffer.from(vcardText, "utf8");
+  const buffer = Buffer.from(vcardText, "utf8");
 
-      await bot.sendDocument(
-        userId,
-        buffer,
-        {},
-        {
-          filename: `${label}_${i + 1}.vcf`,
-          contentType: "text/vcard",
-        }
-      );
-
-      await sleep(1200);
+  await bot.sendDocument(
+    userId,
+    buffer,
+    {},
+    {
+      filename: `${label}_${i + 1}.vcf`,
+      contentType: "text/vcard",
     }
+  );
+
+  await sleep(1200);
+}
 
     // UPDATE SHEET
-    await sheets.spreadsheets.values.clear({
-      spreadsheetId: SHEET_ID,
-      range: `${SHEET_NAME}!${col}:${col}`,
-    });
+const lastRow = (res.data.values || []).length;
 
-    if (remain.length) {
-      await sheets.spreadsheets.values.append({
-        spreadsheetId: SHEET_ID,
-        range: `${SHEET_NAME}!${col}1`,
-        valueInputOption: "RAW",
-        requestBody: {
-          values: remain.map(v => [v]),
-        },
-      });
-    }
+await sheets.spreadsheets.values.clear({
+  spreadsheetId: SHEET_ID,
+  range: `${SHEET_NAME}!${col}1:${col}${lastRow}`,
+});
+
+if (remain.length) {
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: `${SHEET_NAME}!${col}1`,
+    valueInputOption: "RAW",
+    requestBody: {
+      values: remain.map(v => [v]),
+    },
+  });
+}
 
     await bot.sendMessage(userId, "✅ VCARD dikirim semua");
 
@@ -208,6 +225,7 @@ bot.on("message", msg => {
 });
 
 console.log("🤖 BOT FINAL FIX — FILE PASTI TERKIRIM");
+
 
 
 
