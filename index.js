@@ -90,6 +90,7 @@ END:VCARD`).join("\n");
 const COMMANDS = {
   vcardfresh: { col: "A", label: "FRESH" },
   vcardfu: { col: "D", label: "FU" },
+  vcardfake: { col: "F", label: "FAKE" },
 };
 
 /* =======================
@@ -238,6 +239,7 @@ processQueue();
 });
 
 console.log("🤖 BOT FINAL FIX — FILE PASTI TERKIRIM");
+
 
 
 
