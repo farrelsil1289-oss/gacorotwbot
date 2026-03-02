@@ -213,11 +213,11 @@ bot.on("message", msg => {
   const userId = msg.from.id;
 
   if (msg.text === "/start") {
-    bot.sendMessage(chatId, "✅ Bot aktif. Gunakan:\n#vcardfresh JUMLAH\n#vcardfu JUMLAH");
+    bot.sendMessage(chatId, "✅ Bot aktif. Gunakan:\n#vcardfresh JUMLAH\n#vcardfu JUMLAH\n#vcardfake JUMLAH");
     return;
   }
 
-  const m = msg.text.match(/^#(vcardfresh|vcardfu)\s+(\d+)/i);
+  const m = msg.text.match(/^#(vcardfresh|vcardfu|vcardfake)\s+(\d+)/i);
   if (!m) return;
 
 queue.push({
@@ -239,6 +239,7 @@ processQueue();
 });
 
 console.log("🤖 BOT FINAL FIX — FILE PASTI TERKIRIM");
+
 
 
 
