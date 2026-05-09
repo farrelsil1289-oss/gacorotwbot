@@ -60,10 +60,26 @@ http.createServer((req, res) => {
     console.error("processUpdate error:", e);
   }
 });
+
+  } else if (req.method === "GET" && parsed.pathname === "/keepalive") {
+    console.log("🔄 Keep alive ping");
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("OK");
   } else {
     res.end("Bot running");
   }
 }).listen(PORT);
+
+function keepAliveLog() {
+  console.log("🟢 Bot vcard masih hidup:", new Date().toLocaleString("id-ID"));
+}
+
+// log tiap 3 jam
+keepAliveLog();
+
+setInterval(() => {
+  keepAliveLog();
+}, 3 * 60 * 60 * 1000);
 
 /* =======================
    UTIL
